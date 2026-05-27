@@ -16,6 +16,7 @@ var app = builder.Build();
 const string BOT_TOKEN = "8980163341:AAGQx-dVyGbS6maLNQjR7bomSdyM0oJtiMk";
 var botClient = new TelegramBotClient(BOT_TOKEN);
 
+// ========== ВАШИ ДАННЫЕ ==========
 var _quizStates = new Dictionary<long, QuizState>();
 var _random = new Random();
 
@@ -56,50 +57,59 @@ var QuizQuestions = new List<QuizQuestion>
         new[] { "Улучшают его", "Никак", "Синий свет экранов мешает выработке мелатонина", "Помогают быстрее заснуть" }, 2)
 };
 
+// ========== ГЛАВНЫЙ ЭНДПОИНТ (ЭТО САМОЕ ВАЖНОЕ) ==========
 app.MapPost("/webhook", async (HttpContext context) =>
 {
+    Console.WriteLine("➡️ Получен запрос на /webhook"); // Лог для проверки
+    
     var update = await context.Request.ReadFromJsonAsync<Update>();
-    if (update == null) return Results.Ok();
+    if (update == null) 
+    {
+        Console.WriteLine("⚠️ Пустой update");
+        return Results.BadRequest();
+    }
+
+    Console.WriteLine($"✅ Получен update типа: {(update.Message != null ? "Message" : "Callback")}");
 
     try
     {
         if (update.CallbackQuery != null)
-        {
             await HandleCallbackQuery(botClient, update.CallbackQuery);
-        }
-        else if (update.Message is { } message && !string.IsNullOrEmpty(message.Text))
-        {
-            await HandleMessage(botClient, message);
-        }
+        else if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
+            await HandleMessage(botClient, update.Message);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Ошибка: {ex.Message}");
+        Console.WriteLine($"❌ Ошибка: {ex.Message}");
     }
 
     return Results.Ok();
 });
 
-app.MapGet("/", () => "Бот работает!");
+// Проверочный эндпоинт
+app.MapGet("/", () => "Bot is running!");
 
-var domain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? 
-             Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ??
-             "localhost";
+// ========== УСТАНОВКА WEBHOOK ==========
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var domain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? "bot.up.railway.app";
 var webhookUrl = $"https://{domain}/webhook";
+
+Console.WriteLine($"🌐 Устанавливаю webhook: {webhookUrl}");
 
 try
 {
     await botClient.SetWebhookAsync(webhookUrl);
-    Console.WriteLine($"✅ Webhook установлен: {webhookUrl}");
+    Console.WriteLine("✅ Webhook успешно установлен!");
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"❌ Ошибка: {ex.Message}");
+    Console.WriteLine($"❌ Ошибка установки webhook: {ex.Message}");
 }
 
-app.Run();
+// ========== ЗАПУСК СЕРВЕРА ==========
+app.Run($"http://*:{port}");
 
-// ========== ФУНКЦИИ ОБРАБОТКИ ==========
+// ========== ВСЕ ВАШИ ФУНКЦИИ ОБРАБОТКИ (БЕЗ ИЗМЕНЕНИЙ) ==========
 async Task HandleMessage(ITelegramBotClient client, Message message)
 {
     var chatId = message.Chat.Id;
@@ -285,7 +295,7 @@ async Task HandleFreeText(long chatId, string text)
     await botClient.SendTextMessageAsync(chatId, response);
 }
 
-// Классы
+// ========== КЛАССЫ ==========
 public class QuizState
 {
     public int CurrentStep { get; set; }
