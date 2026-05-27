@@ -298,7 +298,6 @@ async def main():
         print("3. Если используете VPN - проверьте настройки")
         print()
         print("Нажмите Enter для выхода...")
-        input()
 
 
 if __name__ == "__main__":
