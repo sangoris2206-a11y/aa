@@ -19,13 +19,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
-
-# Берем токен из переменных окружения Railway
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    logger.error("BOT_TOKEN не найден в переменных окружения!")
-    exit(1)
 
 # Состояния викторины
 quiz_states: Dict[int, 'QuizState'] = {}
@@ -237,7 +230,6 @@ async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок"""
-    logger.error(f"Ошибка: {context.error}")
 
 
 def main():
@@ -249,7 +241,7 @@ def main():
     print("🚀 Запуск бота на Railway...")
     
     # Создаём приложение
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = Application.builder().token("8980163341:AAGQx-dVyGbS6maLNQjR7bomSdyM0oJtiMk").build()
     
     # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
