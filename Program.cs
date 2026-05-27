@@ -89,7 +89,7 @@ var webhookUrl = $"https://{domain}/webhook";
 
 try
 {
-    await botClient.SetWebhook(webhookUrl);
+    await botClient.SetWebhookAsync(webhookUrl);
     Console.WriteLine($"✅ Webhook установлен: {webhookUrl}");
 }
 catch (Exception ex)
