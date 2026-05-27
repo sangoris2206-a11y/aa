@@ -15,9 +15,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/out ./
 
-# Устанавливаем порт (Railway передает переменную PORT)
-ENV ASPNETCORE_URLS=http://+:${PORT}
-EXPOSE ${PORT}
+# Порт будет автоматически получен из переменной Railway
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
 
-# Точка входа (замените MyWebApp.dll на имя вашего файла .dll)
+# Точка входа
 ENTRYPOINT ["dotnet", "bot.dll"]
