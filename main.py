@@ -1,7 +1,8 @@
+import os
 import asyncio
 import random
 import logging
-from typing import Dict, Optional
+from typing import Dict
 from dataclasses import dataclass
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -20,8 +21,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ЗАМЕНИ НА СВОЙ ТОКЕН ОТ @BotFather
-BOT_TOKEN = "8980163341:AAGQx-dVyGbS6maLNQjR7bomSdyM0oJtiMk"
+# Берем токен из переменных окружения Railway
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.error("BOT_TOKEN не найден в переменных окружения!")
+    exit(1)
 
 # Состояния викторины
 quiz_states: Dict[int, 'QuizState'] = {}
@@ -147,7 +151,6 @@ async def send_quiz_question(update: Update, chat_id: int, step: int):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Если это первый вопрос (step=0) - отправляем новое сообщение
     if step == 0:
         await update.message.reply_text(text, parse_mode='Markdown', reply_markup=reply_markup)
     else:
@@ -196,7 +199,6 @@ async def handle_quiz_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_free_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает свободный текст от пользователя"""
     text = update.message.text.lower()
-    chat_id = update.effective_chat.id
     
     if any(word in text for word in ["завишу", "много сижу", "много времени", "не могу оторваться"]):
         response = (
@@ -238,13 +240,13 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Ошибка: {context.error}")
 
 
-async def main():
+def main():
     """Главная функция запуска бота"""
     print("╔════════════════════════════════════════╗")
-    print("║     Telegram Bot - HAPP VPN Support    ║")
+    print("║     Telegram Bot - Social Media Bot    ║")
     print("╚════════════════════════════════════════╝")
     print()
-    print("🚀 Запуск бота...")
+    print("🚀 Запуск бота на Railway...")
     
     # Создаём приложение
     application = Application.builder().token(BOT_TOKEN).build()
@@ -255,7 +257,7 @@ async def main():
     application.add_handler(CommandHandler("tip", random_tip))
     application.add_handler(CommandHandler("quiz", start_quiz))
     
-    # Добавляем обработчик callback-запросов (кнопки викторины)
+    # Добавляем обработчик callback-запросов
     application.add_handler(CallbackQueryHandler(handle_quiz_callback, pattern="^quiz_"))
     
     # Добавляем обработчик свободного текста
@@ -264,41 +266,12 @@ async def main():
     # Добавляем обработчик ошибок
     application.add_error_handler(error_handler)
     
-    # Запускаем бота
+    # Запускаем бота (без input() и других интерактивных операций)
     print("📡 Подключение к Telegram API...")
     
-    try:
-        me = await application.bot.get_me()
-        print()
-        print(f"✅ УСПЕХ! Бот @{me.username} успешно запущен!")
-        print(f"   ID бота: {me.id}")
-        print()
-        print("🤖 Бот работает!")
-        print("📝 Команды:")
-        print("   /start - приветствие")
-        print("   /fact - случайный факт о соцсетях")
-        print("   /quiz - викторина")
-        print("   /tip - полезный совет")
-        print()
-        print("⏹️ Нажмите Ctrl+C для выхода...")
-        print()
-        
-        # Запускаем поллинг
-        await application.run_polling()
-        
-    except Exception as e:
-        print()
-        print("❌ ОШИБКА ПОДКЛЮЧЕНИЯ")
-        print()
-        print(f"Детали ошибки: {e}")
-        print()
-        print("🔧 Возможные решения:")
-        print("1. Проверьте токен бота")
-        print("2. Проверьте интернет-соединение")
-        print("3. Если используете VPN - проверьте настройки")
-        print()
-        print("Нажмите Enter для выхода...")
+    # Используем run_polling с правильной обработкой сигналов
+    application.run_polling()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
