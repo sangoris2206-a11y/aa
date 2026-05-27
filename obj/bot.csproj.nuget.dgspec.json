@@ -53,7 +53,7 @@
           "dependencies": {
             "Telegram.Bot": {
               "target": "Package",
-              "version": "[22.10.0.1, )"
+              "version": "[18.0.0, )"
             }
           },
           "imports": [
