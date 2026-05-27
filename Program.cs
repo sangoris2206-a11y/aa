@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -14,15 +13,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
-// Ваш ТОКЕН
 const string BOT_TOKEN = "8980163341:AAGQx-dVyGbS6maLNQjR7bomSdyM0oJtiMk";
 var botClient = new TelegramBotClient(BOT_TOKEN);
 
-// ========== ВСЕ ВАШИ ДАННЫЕ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ ==========
-private static readonly Dictionary<long, QuizState> _quizStates = new();
-private static readonly Random _random = new();
+var _quizStates = new Dictionary<long, QuizState>();
+var _random = new Random();
 
-private static readonly List<string> Facts = new()
+var Facts = new List<string>
 {
     "📱 Средний пользователь тратит на соцсети 2-3 часа в день. Это ~10 лет за жизнь!",
     "🧠 Соцсети могут вызывать FOMO (страх упустить выгоду) и усиливать тревожность.",
@@ -36,7 +33,7 @@ private static readonly List<string> Facts = new()
     "👨‍👩‍👧 Соцсети могут отдалять членов семьи, даже если они рядом физически."
 };
 
-private static readonly List<string> Tips = new()
+var Tips = new List<string>
 {
     "⏲️ Ставьте таймер на 30 минут для соцсетей в день.",
     "🔕 Отключите push-уведомления – они крадут внимание.",
@@ -47,7 +44,7 @@ private static readonly List<string> Tips = new()
     "🌿 Перед заходом в соцсеть спросите себя: 'Зачем я это делаю?'"
 };
 
-private static readonly List<QuizQuestion> QuizQuestions = new()
+var QuizQuestions = new List<QuizQuestion>
 {
     new QuizQuestion("Сколько в среднем времени в день люди тратят на соцсети?",
         new[] { "30 минут", "1-1.5 часа", "2-3 часа", "Более 5 часов" }, 2),
@@ -58,9 +55,7 @@ private static readonly List<QuizQuestion> QuizQuestions = new()
     new QuizQuestion("Как соцсети влияют на сон?",
         new[] { "Улучшают его", "Никак", "Синий свет экранов мешает выработке мелатонина", "Помогают быстрее заснуть" }, 2)
 };
-// ========== КОНЕЦ ВАШИХ ДАННЫХ ==========
 
-// Эндпоинт для Telegram Webhook
 app.MapPost("/webhook", async (HttpContext context) =>
 {
     var update = await context.Request.ReadFromJsonAsync<Update>();
@@ -87,7 +82,6 @@ app.MapPost("/webhook", async (HttpContext context) =>
 
 app.MapGet("/", () => "Бот работает!");
 
-// Установка webhook
 var domain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? 
              Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ??
              "localhost";
@@ -105,8 +99,8 @@ catch (Exception ex)
 
 app.Run();
 
-// ========== ВСЕ ВАШИ ФУНКЦИИ ОБРАБОТКИ БЕЗ ИЗМЕНЕНИЙ ==========
-async Task HandleMessage(ITelegramBotClient botClient, Message message)
+// ========== ФУНКЦИИ ОБРАБОТКИ ==========
+async Task HandleMessage(ITelegramBotClient client, Message message)
 {
     var chatId = message.Chat.Id;
     var text = message.Text;
@@ -130,7 +124,7 @@ async Task HandleMessage(ITelegramBotClient botClient, Message message)
                 await StartQuiz(chatId);
                 break;
             default:
-                await botClient.SendTextMessageAsync(chatId, "❓ Неизвестная команда. Используйте /start");
+                await client.SendTextMessageAsync(chatId, "❓ Неизвестная команда. Используйте /start");
                 break;
         }
         return;
@@ -203,7 +197,7 @@ async Task SendQuizQuestion(long chatId, int step)
     await botClient.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
 }
 
-async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery)
+async Task HandleCallbackQuery(ITelegramBotClient client, CallbackQuery callbackQuery)
 {
     if (callbackQuery.Data == null || !callbackQuery.Data.StartsWith("quiz_"))
         return;
@@ -219,7 +213,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
 
     if (!_quizStates.TryGetValue(chatId, out var state) || state.CurrentStep != step)
     {
-        await botClient.AnswerCallbackQueryAsync(callbackQuery.Id, "❌ Викторина не активна. Начните заново: /quiz");
+        await client.AnswerCallbackQueryAsync(callbackQuery.Id, "❌ Викторина не активна. Начните заново: /quiz");
         return;
     }
 
@@ -229,11 +223,11 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
     if (isCorrect)
     {
         state.Score++;
-        await botClient.AnswerCallbackQueryAsync(callbackQuery.Id, "✅ Верно!");
+        await client.AnswerCallbackQueryAsync(callbackQuery.Id, "✅ Верно!");
     }
     else
     {
-        await botClient.AnswerCallbackQueryAsync(callbackQuery.Id,
+        await client.AnswerCallbackQueryAsync(callbackQuery.Id,
             $"❌ Неверно. Правильно: {question.Options[question.CorrectIndex]}");
     }
 
@@ -241,7 +235,7 @@ async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callb
 
     try
     {
-        await botClient.DeleteMessageAsync(chatId, callbackQuery.Message.MessageId);
+        await client.DeleteMessageAsync(chatId, callbackQuery.Message.MessageId);
     }
     catch { }
 
@@ -291,7 +285,7 @@ async Task HandleFreeText(long chatId, string text)
     await botClient.SendTextMessageAsync(chatId, response);
 }
 
-// Классы состояния
+// Классы
 public class QuizState
 {
     public int CurrentStep { get; set; }
